@@ -139,7 +139,11 @@ window.videoResume = function(){
 	//var video_id=window.yt_current_vid.d.videoData["video_id"];
 	var videoTitle =  window.yt_current_vid.title;
 	var videoCurrentTime = window.yt_current_vid.getCurrentTime();
-
+	trackVid = window.yt_current_vid;
+	trackVid.is25 = false;
+	trackVid.is50 = false;
+	trackVid.is75 = false;
+	
 	if(window.yt_current_vid.pauseTime != -1 && Math.abs(window.yt_current_vid.pauseTime - videoCurrentTime) >1){
 		_gaq.push(['_trackEvent', 'Videos', 'Seek From', videoTitle,parseInt(window.yt_current_vid.pauseTime)]);
 		s.Media.stop(videoTitle,parseInt(window.yt_current_vid.pauseTime));
@@ -161,6 +165,59 @@ function getVideoTitles(data){
 	s_yt_vids.push(id);
 	s_yt_vids.push(title);
 }
+
+//Track Video Percent
+var trackVid
+function vidComplete(){
+trackVid.isComplete = false;
+trackVid.isReset = true;		
+}//close vidComplete
+
+function resetVid(){
+	trackVid.is25 = false;
+	trackVid.is50 = false;
+	trackVid.is75 = false;
+	trackVid.isReset = false;
+	trackVid.isComplete = true;
+	trackVid.videoBegun = false;
+}//close resetVid
+
+function trackPercent(){
+	
+	var videoTitle =  trackVid.videoTitle;
+	var trackVideoCurrentTime = trackVid.getCurrentTime();
+	var trackVideoDuration = trackVid.getDuration();
+	var trackVideoPercentComplete = trackVideoCurrentTime/trackVideoDuration*100;
+	trackVideoPercentComplete = Math.round(trackVideoPercentComplete);
+	
+
+if(trackVid.isReset){
+//console.log(trackVideoPercentComplete);
+if(!trackVid.is25){
+	if(trackVideoPercentComplete==25){
+	trackVid.is25 = true;	
+	//console.log(videoTitle + ": 25% Complete");
+	_gaq.push(['_trackEvent', 'Videos', 'Percent', videoTitle,25]);
+	}//25%
+}//is25
+if(!trackVid.is50){
+	if(trackVideoPercentComplete==50){
+	trackVid.is50 = true;
+	//console.log(videoTitle + ": 50% Complete");
+	_gaq.push(['_trackEvent', 'Videos', 'Percent', videoTitle,50]);	
+	}//50%
+}//is50
+if(!trackVid.is75){
+	if(trackVideoPercentComplete==75){
+	trackVid.is75 = true;	
+	//console.log(videoTitle + ": 75% Complete");
+	_gaq.push(['_trackEvent', 'Videos', 'Percent', videoTitle,75]);	
+	}//75%	
+}//is75
+}//isReset
+}//trackPercent
+
+
 /***** Main YouTube Tracking Code ******/
 
 function getVideoId(vidObj, ytDelim, ytParam) {
@@ -229,7 +286,11 @@ window.videoStateChange = function(event) {
 							vid.videoDuration = videoDuration;
 							
 							//TRACK PLAY
+							trackVid = vid;
+							trackVid.videoTitle = videoTitle;
+							trackVid.isReset = true;
 							vid.videoBegun = true;
+							setInterval(trackPercent, 100);	
 							_gaq.push(['_trackEvent', 'Videos', 'Play', videoTitle,parseInt(videoDuration)]);
 							s.Media.open(videoTitle,(parseInt(videoDuration)),"YouTube");
 							s.Media.play(videoTitle,0);
